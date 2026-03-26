@@ -340,6 +340,7 @@ impl<C> IggyPartitions<C> {
             self.config.enforce_fsync,
             self.config.enforce_fsync,
             false, // file_exists (new segment)
+            self.config.direct_io,
         )
         .await
         .map_err(|_| IggyError::CannotCreateSegmentLogFile(messages_path.clone()))?;
@@ -1255,6 +1256,7 @@ where
             self.config.enforce_fsync,
             self.config.enforce_fsync,
             false, // file_exists (new segment)
+            self.config.direct_io,
         )
         .await
         .map_err(|_| IggyError::CannotCreateSegmentLogFile(messages_path.clone()))?;
@@ -1286,6 +1288,14 @@ where
 
         // Close writers for the sealed segment.
         let old_storage = &mut partition.log.storages_mut()[old_segment_index];
+
+        // TODO(tungtose): this should be remove after MessageReader open with O_DIRECT
+        if let Some(ref messages_writer) = old_storage.messages_writer {
+            if messages_writer.try_get_direct_file().is_some() {
+                messages_writer.flush_and_truncate().await?;
+            }
+        }
+
         let _ = old_storage.shutdown();
         partition.log.messages_writers_mut()[old_segment_index] = None;
         partition.log.index_writers_mut()[old_segment_index] = None;

@@ -29,6 +29,7 @@ mod traits;
 mod types;
 mod utils;
 
+pub use alloc::memory_pool::ALIGNMENT;
 pub use error::client_error::ClientError;
 pub use error::iggy_error::{IggyError, IggyErrorDiscriminants};
 // Locking is feature gated, thus only mod level re-export.
